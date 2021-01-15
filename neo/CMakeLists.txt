@@ -48,7 +48,7 @@ include(GNUInstallDirs OPTIONAL RESULT_VARIABLE GNUINSTALLDIRS)
 
 option(CORE			"Build the core" ON)
 option(BASE			"Build the base game code" ON)
-option(D3XP			"Build the d3xp game code" ON)
+option(D3XP			"Build the d3xp game code" OFF)
 if(MSVC)
 	option(TOOLS		"Build the tools game code (32bit Windows+Visual Studio+SDL2 only)" OFF)
 	option(GST_TOOLS	"Build graphics software export tools for Blender (Tools+32bit only)" OFF)
@@ -148,7 +148,7 @@ if (SDL2)
 	endif()
 	find_package(SDL2 CONFIG REQUIRED)
 	include_directories(${SDL2_INCLUDE_DIR})
-	set(SDLx_LIBRARY ${SDL2_LIBRARY})
+	set(SDLx_LIBRARY "SDL2::SDL2")
 	if(QGL_HLSL AND QGL_IMGUI)
 		find_package(imgui CONFIG REQUIRED)
 		include_directories(${IMGUI_INCLUDE_DIRS})
@@ -278,7 +278,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 elseif(MSVC)
 	add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>) # parallel build (use all cores, or as many as configured in VS)
 
-	add_compile_options(/W4)
+	add_compile_options(/W3) #NOTE: when setting to w4, compiler complains that it overrides W3. I dont like compiler spawm, so W3 it is..
 	add_compile_options(/we4840) # treat as error when passing a class to a vararg-function (probably printf-like)
 	add_compile_options(/wd4100) # unreferenced formal parameter
 	add_compile_options(/wd4127) # conditional expression is constant
