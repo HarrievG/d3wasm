@@ -48,19 +48,14 @@ include(GNUInstallDirs OPTIONAL RESULT_VARIABLE GNUINSTALLDIRS)
 
 option(CORE			"Build the core" ON)
 option(BASE			"Build the base game code" ON)
-option(D3XP			"Build the d3xp game code" OFF)
+option(D3XP			"Build the d3xp game code" ON)
 if(MSVC)
 	option(TOOLS		"Build the tools game code (32bit Windows+Visual Studio+SDL2 only)" OFF)
-	option(GST_TOOLS	"Build graphics software export tools for Blender (Tools+32bit only)" OFF)
 endif()
 option(DEDICATED	"Build the dedicated server" OFF)
 option(ONATIVE		"Optimize for the host CPU" OFF)
 option(SDL2			"Use SDL2 instead of SDL1.2" ON)
 option(REPRODUCIBLE_BUILD "Replace __DATE__ and __TIME__ by hardcoded values for reproducible builds" OFF)
-option(TYPEINFOGEN	"Build the typeInfo Executable" OFF)
-option(QGL_HLSL		"Build minimal qgl functionality for GLSL" OFF)
-option(QGL_IMGUI	"Build with IMGUI support (SDL2+QGL_HLSL only)" OFF)
-option(DAE_SUPPORT	"Build with collada(.dae) support" OFF)
 
 if(NOT CMAKE_SYSTEM_PROCESSOR)
 	message(FATAL_ERROR "No target CPU architecture set")
@@ -132,10 +127,10 @@ set(CMAKE_REQUIRED_LIBRARIES ${JPEG_LIBRARY})
 find_package(OGG REQUIRED)
 include_directories(${OGG_INCLUDE_DIR})
 
-find_package(Vorbis REQUIRED)
+find_package(VORBIS REQUIRED)
 include_directories(${VORBIS_INCLUDE_DIR})
 
-find_package(VorbisFile )
+find_package(VORBISFILE REQUIRED)
 include_directories(${VORBISFILE_INCLUDE_DIR})
 
 find_package(OpenAL REQUIRED)
@@ -155,7 +150,7 @@ if (SDL2)
 		add_compile_definitions(USE_QGL_IMGUI)
 		add_compile_definitions(IMGUI_IMPL_OPENGL_LOADER_CUSTOM)
 	endif()
-else() 
+else()
 	# skip SDLmain
 	if(APPLE OR WIN32)
 		set(SDL_BUILDING_LIBRARY TRUE)
@@ -214,7 +209,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 
 	add_compile_options(-fno-strict-aliasing)
 
-	if(NOT AROS AND NOT MSVC)
+	if(NOT AROS)
 		CHECK_CXX_COMPILER_FLAG("-fvisibility=hidden" cxx_has_fvisibility)
 		if(NOT cxx_has_fvisibility)
 			message(FATAL_ERROR "Compiler does not support -fvisibility")
@@ -241,7 +236,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		if(cpu STREQUAL "x86_64")
 			add_compile_options(-arch x86_64 -mmacosx-version-min=10.9)
 			set(ldflags "${ldflags} -arch x86_64 -mmacosx-version-min=10.9")
-		elseif(cpu STREQUAL "arm64")
+                elseif(cpu STREQUAL "arm64")
 			add_compile_options(-arch arm64 -mmacosx-version-min=11.0)
 			set(ldflags "${ldflags} -arch arm64 -mmacosx-version-min=11.0")
 		elseif(cpu STREQUAL "x86")
@@ -276,8 +271,8 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		set(sys_libs ${sys_libs} ${EXECINFO_LIBRARIES})
 	endif()
 elseif(MSVC)
-	add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>) # parallel build (use all cores, or as many as configured in VS)
-
+	add_compile_options(/MP) # parallel build (use all cores, or as many as configured in VS)
+	
 	add_compile_options(/W3) #NOTE: when setting to w4, compiler complains that it overrides W3. I dont like compiler spawm, so W3 it is..
 	add_compile_options(/we4840) # treat as error when passing a class to a vararg-function (probably printf-like)
 	add_compile_options(/wd4100) # unreferenced formal parameter
@@ -412,20 +407,6 @@ set(src_renderer
 	renderer/tr_trisurf.cpp
 	renderer/tr_turboshadow.cpp
 )
-if (QGL_HLSL)
-	add_compile_definitions(USE_QGL_HLSL)
-endif()
-
-if (DAE_SUPPORT)
-	add_compile_definitions(USE_COLLADA)
-	set(src_renderer ${src_renderer}
-		renderer/Model_ColladaHelper.h
-		renderer/Model_ColladaParser.cpp
-		renderer/Model_ColladaParser.h
-	)
-endif()
-
-
 
 # I'm a bit sloppy with headers and just glob them in..
 # they're only handled in CMake at all so they turn up in Visual Studio solutions..
@@ -791,18 +772,6 @@ set(src_core
 	${src_tools}
 )
 
-if (DAE_SUPPORT)
-	file(GLOB IRRXML_INCLUDES irrxml/src/*.h)
-	file(GLOB IRRXML_SOURCES irrxml/src/*.cpp)
-	source_group("irrxml" FILES ${IRRXML_INCLUDES})
-	source_group("irrxml" FILES ${IRRXML_SOURCES})
-
-	set(src_core ${src_core}
-		${IRRXML_INCLUDES}
-		${IRRXML_SOURCES}
-	)
-endif()
-
 set(src_stub_openal		sys/stub/openal_stub.cpp)
 set(src_stub_gl			sys/stub/stub_gl.cpp)
 
@@ -875,12 +844,11 @@ if (TOOLS AND MFC_FOUND AND MSVC)
 		)
 	SET(CMAKE_MFC_FLAG 2)
 	set(TOOLS_DEFINES "ID_ALLOW_TOOLS;_AFXDLL")
-	if(GST_TOOLS)
-		set(TOOLS_DEFINES ${TOOLS_DEFINES} "USE_BLENDER_GST")
-	endif()
 else()
 	set(src_editor_tools "tools/edit_stub.cpp" "tools/edit_public.h")
 endif()
+
+
 if(AROS)
 	set(DHEWM3BINARY "ADoom3")
 	set(sys_libs ${sys_libs} dll)
@@ -949,7 +917,7 @@ elseif(WIN32)
 		sys/platform.h
 		sys/sys_local.h
 		sys/sys_public.h
-		sys/win32/win_local.h 
+		sys/win32/win_local.h
 	)
 
 	set(src_sys_core
@@ -980,14 +948,6 @@ else()
 	)
 endif()
 
-if(QGL_IMGUI)
-	set(src_sys_base ${src_sys_base}
-		sys/ImGui_Impl/imgui_impl_sdl.h
-		sys/ImGui_Impl/imgui_impl_opengl3.h
-	)
-	set(sys_libs ${sys_libs} imgui::imgui)
-endif()
-
 include_directories(${CMAKE_BINARY_DIR})
 include_directories(${CMAKE_SOURCE_DIR})
 
@@ -1014,7 +974,7 @@ if(CORE)
 		${src_sys_core}
 		${src_editor_tools}
 	)
-
+	
 	if(MSVC AND CMAKE_MAJOR_VERSION GREATER 3 OR ( CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 6 ))
 		# CMake >= 3.6 supports setting the default project started for debugging (instead of trying to launch ALL_BUILD ...)
 		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${DHEWM3BINARY})
@@ -1025,9 +985,6 @@ if(CORE)
 	set_target_properties(${DHEWM3BINARY} PROPERTIES COMPILE_DEFINITIONS "__DOOM_DLL__;${TOOLS_DEFINES}")
 	set_target_properties(${DHEWM3BINARY} PROPERTIES LINK_FLAGS "${ldflags}")
 	set_target_properties(${DHEWM3BINARY} PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/sys/osx/Info.plist)
-	if(MSVC AND TOOLS)
-		set_target_properties(${DHEWM3BINARY} PROPERTIES VS_DPI_AWARE "PerMonitor")
-	endif()
 
 	target_link_libraries(${DHEWM3BINARY}
 		idlib
@@ -1088,7 +1045,7 @@ if(BASE)
 	if (AROS)
 		add_executable(base sys/aros/dll/dllglue.c ${src_game})
 		set_target_properties(base PROPERTIES OUTPUT_NAME "base.aros-${AROS_ARCH}")
-	else()		
+	else()
 		add_library(base SHARED ${src_game})
 	endif()
 	
@@ -1140,30 +1097,4 @@ if(D3XP)
 				ARCHIVE DESTINATION "${libdir}"
 		)
 	endif()
-endif()
-
-if (TYPEINFOGEN)
-	set(src_typeinfo
-		${CMAKE_CURRENT_SOURCE_DIR}/TypeInfo/TypeInfoGen.h
-		${CMAKE_CURRENT_SOURCE_DIR}/framework/CmdSystem.h	
-		${CMAKE_CURRENT_SOURCE_DIR}/framework/CVarSystem.h
-		${CMAKE_CURRENT_SOURCE_DIR}/framework/File.h
-		${CMAKE_CURRENT_SOURCE_DIR}/framework/FileSystem.h
-		${CMAKE_CURRENT_SOURCE_DIR}/framework/Licensee.h
-		${CMAKE_CURRENT_SOURCE_DIR}/framework/Unzip.h
-		${CMAKE_CURRENT_SOURCE_DIR}/framework/File.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/framework/FileSystem.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/framework/CmdSystem.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/framework/CVarSystem.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/framework/minizip/ioapi.c
-		${CMAKE_CURRENT_SOURCE_DIR}/framework/minizip/unzip.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/TypeInfo/TypeInfoGen.cpp
-		)
-
-	add_executable(TypeInfo "TypeInfo/main.cpp"	${src_typeinfo}	)
-	set_target_properties(TypeInfo PROPERTIES COMPILE_DEFINITIONS "ID_TYPEINFO")
-	target_link_libraries(TypeInfo
-			idLib
-			${ZLIB_LIBRARY}
-		)
 endif()
