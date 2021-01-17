@@ -602,18 +602,29 @@ uintptr_t Sys_DLL_Load( const char *dllName ) {
 		}
 	} else {
 		DWORD e = GetLastError();
-		//when encountering errors, pls ammend to list
-		//see https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes
-		idStr errorStr = va("\n\t\t Unknown Error [%i (0x%X)]",e,e);
-		if (e == 0x7E) // common, skipped.
-			errorStr = "";//"\n\t\tERROR_MOD_NOT_FOUND [126 (0x7E)]\n\t\tThe specified module could not be found.";
-		else if (e == 0xD6)
-			errorStr = "\n\t\tERROR_TOO_MANY_MODULES [214 (0xD6)]\n\t\tToo many dynamic - link modules are attached to this program or dynamic - link module.";
-		else if (e == 0xD7)
-			errorStr = "\n\t\tERROR_NESTING_NOT_ALLOWED [215 (0xD7)]\n\t\tCannot nest calls to LoadModule.";
+		LPVOID msgBuf = nullptr;
+
+		FormatMessage(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS ,
+			NULL,
+			e,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPTSTR)&msgBuf,
+			0, NULL);
+
+
+		idStr errorStr = va("[%i (0x%X)]\t%s",e,e,msgBuf);
+
+		// common, skipped.
+		if (e == 0x7E) //[126 (0x7E)] The specified module could not be found.
+			errorStr = "";
 
 		if (errorStr.Length())
 			common->Warning("LoadLibrary(%s) Failed ! %s",dllName,errorStr.c_str());
+
+		::LocalFree(msgBuf);
 	}
 	return (uintptr_t)libHandle;
 }
