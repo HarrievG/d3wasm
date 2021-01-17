@@ -619,7 +619,7 @@ uintptr_t Sys_DLL_Load( const char *dllName ) {
 		// common, skipped.
 		if ( e == 0x7E ) // [126 (0x7E)] The specified module could not be found.
 			errorStr = "";
-		// probable going to be common. Lets try to be less cryptic.
+		// probably going to be common. Lets try to be less cryptic.
 		else if ( e == 0xC1 ) // [193 (0xC1)] is not a valid Win32 application.
 			errorStr = va( "[%i (0x%X)]\t%s", e, e, "probably the DLL is of the wrong architecture, like x64 instead of x86" );
 
