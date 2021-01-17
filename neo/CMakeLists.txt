@@ -127,10 +127,10 @@ set(CMAKE_REQUIRED_LIBRARIES ${JPEG_LIBRARY})
 find_package(OGG REQUIRED)
 include_directories(${OGG_INCLUDE_DIR})
 
-find_package(VORBIS REQUIRED)
+find_package(Vorbis REQUIRED)
 include_directories(${VORBIS_INCLUDE_DIR})
 
-find_package(VORBISFILE REQUIRED)
+find_package(VorbisFile REQUIRED)
 include_directories(${VORBISFILE_INCLUDE_DIR})
 
 find_package(OpenAL REQUIRED)
